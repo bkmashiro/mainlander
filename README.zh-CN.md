@@ -343,19 +343,6 @@ pnpm dev
 pnpm build
 ```
 
-## 发布 / npm
-
-仓库已经准备 GitHub Actions + npm Trusted Publishing。正常后续发版不需要在 GitHub Secrets 放 `NPM_TOKEN`。
-
-但 npm Trusted Publishing 对全新包的首次发布有限制：如果 `mainlander` 还不存在，需要维护者先用临时 token 或 `npm login` 手动发布一次 `0.1.0`。首次发布后，在 npm package settings 添加 Trusted Publisher：
-
-- Provider: GitHub Actions
-- Repository: `bkmashiro/mainlander`
-- Workflow file: `publish-npm.yml`
-- Environment: 留空，除非 workflow 后续显式加 GitHub environment
-
-之后可以通过 GitHub Actions 手动触发 **Publish npm**，或 push `v*.*.*` tag 自动发布。
-
 ## 参考
 
 - MDN：NavigatorUAData / Client Hints
