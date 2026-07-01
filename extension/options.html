@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Mainlander Shield Options</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="options">
+      <h1>Mainlander Shield Options</h1>
+      <p class="note">Use stable personas and conservative blocking. This extension cannot change TLS fingerprints or your real exit IP.</p>
+
+      <label><input type="checkbox" id="enableShield"> Enable API shield</label>
+      <label>Persona
+        <select id="personaId">
+          <option value="gb">United Kingdom / English</option>
+          <option value="us">United States / English</option>
+          <option value="cnLite">Mainland China lite / Simplified Chinese</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="networkShield"> Block known IP/GeoIP probe endpoints</label>
+      <label><input type="checkbox" id="blockWebRTC"> Block RTCPeerConnection creation</label>
+      <label><input type="checkbox" id="blockWebGPU"> Hide WebGPU</label>
+      <label><input type="checkbox" id="genericMediaDevices"> Return generic empty media devices</label>
+      <label><input type="checkbox" id="conservativePermissions"> Return prompt for high-risk permission queries</label>
+      <label><input type="checkbox" id="farbleCanvas"> Deterministic per-site canvas farbling</label>
+      <label><input type="checkbox" id="farbleAudio"> Deterministic per-site audio farbling</label>
+
+      <button id="save">Save</button>
+      <span id="saved"></span>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

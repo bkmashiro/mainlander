@@ -45,6 +45,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "validate:extension": "node extension/scripts/validate-extension.mjs",
+    "build:extension": "node extension/scripts/validate-extension.mjs",
     "prepack": "pnpm test && pnpm build:lib"
   },
   "dependencies": {},

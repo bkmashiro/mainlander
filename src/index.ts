@@ -1,4 +1,5 @@
 export {
+  classifyMarketAppHints,
   countryLabel,
   runLocalDetector,
   runNetworkProbe,
@@ -7,6 +8,7 @@ export {
 
 export type {
   DetectionReport,
+  MarketAppHint,
   NetworkGeoSummary,
   NetworkProbeResult,
   RiskLevel,

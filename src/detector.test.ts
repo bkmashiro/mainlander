@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countryLabel, summarizeNetworkGeo, type NetworkProbeResult } from "./index";
+import { classifyMarketAppHints, countryLabel, summarizeNetworkGeo, type NetworkProbeResult } from "./index";
 
 describe("public library API", () => {
   it("labels known countries without hiding the ISO code", () => {
@@ -26,5 +26,14 @@ describe("public library API", () => {
       failedCount: 1,
       topCountry: "GB",
     });
+  });
+
+  it("classifies country-market app and embedded browser hints", () => {
+    expect(classifyMarketAppHints("Mozilla/5.0 MicroMessenger/8.0.48 miniProgram NetType/WIFI")).toEqual([
+      { country: "CN", family: "WeChat embedded browser", token: "MicroMessenger", confidence: 2.5 },
+      { country: "CN", family: "WeChat mini program", token: "miniProgram", confidence: 2 },
+    ]);
+    expect(classifyMarketAppHints("Mozilla/5.0 Line/14.0 KAKAOTALK 10.2").map((hit) => hit.country).sort()).toEqual(["JP", "KR"]);
+    expect(classifyMarketAppHints("Mozilla/5.0 Chrome/120 Safari/537.36")).toEqual([]);
   });
 });

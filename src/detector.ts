@@ -48,6 +48,13 @@ export interface NetworkGeoSummary {
   topCountry: string | null;
 }
 
+export interface MarketAppHint {
+  country: string;
+  family: string;
+  token: string;
+  confidence: number;
+}
+
 type Candidate = {
   country: string;
   reason: string;
@@ -138,6 +145,21 @@ const CHINESE_FONTS = [
   "仿宋_GB2312",
 ];
 
+const MARKET_APP_PATTERNS: Array<MarketAppHint & { pattern: RegExp }> = [
+  { country: "CN", family: "WeChat embedded browser", token: "MicroMessenger", confidence: 2.5, pattern: /MicroMessenger/i },
+  { country: "CN", family: "WeChat mini program", token: "miniProgram", confidence: 2, pattern: /miniProgram/i },
+  { country: "CN", family: "QQ browser/app", token: "QQBrowser/MQQBrowser/MQQ", confidence: 2, pattern: /\b(QQBrowser|MQQBrowser|MQQ)\b/i },
+  { country: "CN", family: "Alipay embedded browser", token: "AlipayClient", confidence: 2, pattern: /AlipayClient/i },
+  { country: "CN", family: "ByteDance app browser", token: "aweme/douyin/Bytedance", confidence: 1.75, pattern: /aweme|douyin|BytedanceWebview|ToutiaoMicroApp/i },
+  { country: "CN", family: "Bilibili app browser", token: "BiliApp", confidence: 1.5, pattern: /BiliApp|BiliDroid|Bili-iOS/i },
+  { country: "CN", family: "Huawei/HarmonyOS browser", token: "HuaweiBrowser/HarmonyOS", confidence: 1.5, pattern: /HuaweiBrowser|HarmonyOS|ArkWeb/i },
+  { country: "CN", family: "MIUI/Xiaomi browser", token: "MiuiBrowser", confidence: 1.5, pattern: /MiuiBrowser|XiaoMi\/MiuiBrowser/i },
+  { country: "KR", family: "KakaoTalk embedded browser", token: "KAKAOTALK", confidence: 2, pattern: /KAKAOTALK/i },
+  { country: "JP", family: "LINE embedded browser", token: "Line", confidence: 1.75, pattern: /\bLine\//i },
+  { country: "JP", family: "Yahoo Japan app browser", token: "YJApp", confidence: 1.5, pattern: /YJApp/i },
+  { country: "RU", family: "Yandex browser/app", token: "YaBrowser/Yandex", confidence: 1.25, pattern: /YaBrowser|Yandex/i },
+];
+
 const COUNTRY_NAMES: Record<string, string> = {
   CN: "Mainland China",
   HK: "Hong Kong",
@@ -163,6 +185,12 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 export function countryLabel(code: string): string {
   return COUNTRY_NAMES[code] ? `${code} · ${COUNTRY_NAMES[code]}` : code;
+}
+
+export function classifyMarketAppHints(userAgent: string): MarketAppHint[] {
+  return MARKET_APP_PATTERNS
+    .filter((hint) => hint.pattern.test(userAgent))
+    .map(({ country, family, token, confidence }) => ({ country, family, token, confidence }));
 }
 
 export function summarizeNetworkGeo(results: NetworkProbeResult[]): NetworkGeoSummary {
@@ -213,6 +241,7 @@ export async function runLocalDetector(): Promise<DetectionReport> {
   addSignal(signals, intlSignal());
   addSignal(signals, dateOffsetSignal());
   addSignal(signals, navigatorSignal());
+  addSignal(signals, marketAppSignal());
   addSignal(signals, screenSignal());
   addSignal(signals, storageSignal());
 
@@ -375,17 +404,34 @@ function navigatorSignal(): Signal {
     userAgentData: nav.userAgentData,
   };
   const notes: string[] = [];
-  if (/MicroMessenger|QQBrowser|UCBrowser|Huawei|HarmonyOS|MiuiBrowser|HeyTapBrowser/i.test(navigator.userAgent)) notes.push("UA contains China-market browser/device token.");
   const countries = notes.length ? ["CN"] : [];
   return mkSignal({
     id: "navigator.identity",
     label: "Navigator platform and UA",
     category: "device",
     value,
-    weight: 1.5,
-    score: countries.length ? 1.5 : 0,
+    weight: 1,
+    score: countries.length ? 1 : 0,
     countries,
-    notes: notes.join(" ") || "No obvious country-specific UA token.",
+    notes: notes.join(" ") || "No obvious device-platform country token.",
+  });
+}
+
+function marketAppSignal(): Signal {
+  const hits = classifyMarketAppHints(navigator.userAgent);
+  const countries = unique(hits.map((hit) => hit.country));
+  const score = Math.min(3, hits.reduce((sum, hit) => sum + hit.confidence, 0));
+  return mkSignal({
+    id: "navigator.marketApps",
+    label: "Country-market app/browser hints",
+    category: "app-preference",
+    value: hits,
+    weight: 3,
+    score,
+    countries,
+    notes: hits.length
+      ? hits.map((hit) => `${hit.family} (${hit.token}) -> ${hit.country}`).join("; ")
+      : "No country-market embedded browser or app token matched.",
   });
 }
 
@@ -465,8 +511,8 @@ function emojiSignal(): Signal {
     label: "Emoji rendering probe",
     category: "rendering",
     value: results,
-    weight: 1.5,
-    score: mainlandLike ? 1.5 : 0,
+    weight: 2.5,
+    score: mainlandLike ? 2.5 : 0,
     countries: mainlandLike ? ["CN"] : [],
     notes: mainlandLike ? "Taiwan flag appears monochrome/missing, a known Mainland China device/browser signal." : "No Mainland-specific emoji suppression detected.",
   });
