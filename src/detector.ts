@@ -20,14 +20,16 @@ export interface DetectionReport {
   contradictions: string[];
   signals: Signal[];
   hashes: Record<string, string>;
-  optionalNetwork?: NetworkProbeResult;
+  optionalNetwork?: NetworkProbeResult[];
 }
 
 export interface NetworkProbeResult {
   ok: boolean;
   provider: string;
+  endpoint: string;
   value?: unknown;
   error?: string;
+  skipped?: boolean;
 }
 
 type Candidate = {
@@ -191,18 +193,50 @@ export async function runLocalDetector(): Promise<DetectionReport> {
   };
 }
 
-export async function runNetworkProbe(): Promise<NetworkProbeResult> {
+export async function runNetworkProbe(): Promise<NetworkProbeResult[]> {
+  const providers: Array<{ provider: string; endpoint: string; parser?: (res: Response) => Promise<unknown> }> = [
+    {
+      provider: "Cloudflare trace",
+      endpoint: "https://www.cloudflare.com/cdn-cgi/trace",
+      parser: async (res) => {
+        const text = await res.text();
+        return Object.fromEntries(text.trim().split("\n").map((line) => {
+          const idx = line.indexOf("=");
+          return idx === -1 ? [line, ""] : [line.slice(0, idx), line.slice(idx + 1)];
+        }));
+      },
+    },
+    { provider: "ipify IPv4", endpoint: "https://api.ipify.org?format=json" },
+    { provider: "ipify IPv6/auto", endpoint: "https://api64.ipify.org?format=json" },
+    { provider: "ipapi.co", endpoint: "https://ipapi.co/json/" },
+    { provider: "freeipapi.com", endpoint: "https://freeipapi.com/api/json" },
+    { provider: "BigDataCloud client-ip", endpoint: "https://api.bigdatacloud.net/data/client-ip" },
+    // ip-api's no-key tier is HTTP-only. It works on local http demos, but browsers block it from HTTPS pages.
+    { provider: "ip-api.com free", endpoint: "http://ip-api.com/json/" },
+  ];
+
+  return Promise.all(providers.map(async (probe) => {
+    if (location.protocol === "https:" && probe.endpoint.startsWith("http://")) {
+      return { ok: false, provider: probe.provider, endpoint: probe.endpoint, skipped: true, error: "Skipped on HTTPS page to avoid mixed-content blocking." };
+    }
+    try {
+      const res = await fetchWithTimeout(probe.endpoint, 4500);
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const value = probe.parser ? await probe.parser(res) : await res.json();
+      return { ok: true, provider: probe.provider, endpoint: probe.endpoint, value };
+    } catch (err) {
+      return { ok: false, provider: probe.provider, endpoint: probe.endpoint, error: err instanceof Error ? err.message : String(err) };
+    }
+  }));
+}
+
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch("https://www.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const text = await res.text();
-    const parsed = Object.fromEntries(text.trim().split("\n").map((line) => {
-      const idx = line.indexOf("=");
-      return idx === -1 ? [line, ""] : [line.slice(0, idx), line.slice(idx + 1)];
-    }));
-    return { ok: true, provider: "cloudflare trace", value: parsed };
-  } catch (err) {
-    return { ok: false, provider: "cloudflare trace", error: err instanceof Error ? err.message : String(err) };
+    return await fetch(url, { cache: "no-store", signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
   }
 }
 

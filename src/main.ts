@@ -43,12 +43,12 @@ rerunBtn.addEventListener("click", () => runAndRender());
 networkBtn.addEventListener("click", async () => {
   networkBtn.disabled = true;
   networkBtn.textContent = "Probing…";
-  const result = await runNetworkProbe();
+  const results = await runNetworkProbe();
   if (currentReport) {
-    currentReport.optionalNetwork = result;
+    currentReport.optionalNetwork = results;
     render(currentReport);
   } else {
-    renderNetworkOnly(result);
+    renderNetworkOnly(results);
   }
   networkBtn.disabled = false;
   networkBtn.textContent = "Optional IP probe";
@@ -96,15 +96,21 @@ function render(report: DetectionReport) {
   rawEl.innerHTML = `<h2>Raw report</h2><pre>${escapeHtml(JSON.stringify(report, null, 2))}</pre>`;
 }
 
-function renderNetworkOnly(result: NetworkProbeResult) {
-  contradictionsEl.innerHTML = networkBlock(result);
+function renderNetworkOnly(results: NetworkProbeResult[]) {
+  contradictionsEl.innerHTML = networkBlock(results);
 }
 
-function networkBlock(result: NetworkProbeResult): string {
+function networkBlock(results: NetworkProbeResult[]): string {
   return `
-    <div class="network ${result.ok ? "" : "error"}">
-      <h3>Optional network probe · ${escapeHtml(result.provider)}</h3>
-      <pre>${escapeHtml(JSON.stringify(result.value ?? result.error, null, 2))}</pre>
+    <div class="network">
+      <h3>Optional network probes</h3>
+      ${results.map((result) => `
+        <details class="probe" ${result.ok ? "open" : ""}>
+          <summary>${escapeHtml(result.provider)} · ${result.ok ? "ok" : result.skipped ? "skipped" : "failed"}</summary>
+          <div class="subtle">${escapeHtml(result.endpoint)}</div>
+          <pre>${escapeHtml(JSON.stringify(result.value ?? result.error, null, 2))}</pre>
+        </details>
+      `).join("")}
     </div>
   `;
 }
