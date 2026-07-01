@@ -1,23 +1,30 @@
 import "./styles.css";
 import { countryLabel, runLocalDetector, runNetworkProbe, type DetectionReport, type NetworkProbeResult, type Signal } from "./detector.ts";
+import { detectLocale, otherLocale, setDocumentLocale, t, type Locale } from "./i18n.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 if (!app) throw new Error("#app missing");
 
+let locale: Locale = detectLocale();
+setDocumentLocale(locale);
+
 app.innerHTML = `
   <main class="shell">
     <section class="hero">
-      <div class="eyebrow">MAINLANDER LAB</div>
-      <h1>Browser country fingerprint detector</h1>
-      <p class="lede">A static-first lab for the sharpest spear: locale, timezone, rendering, device, privacy, and optional network signals.</p>
-      <div class="actions">
-        <button id="rerun" class="primary">Run local detector</button>
-        <button id="network" class="secondary">Optional IP probe</button>
+      <div class="topbar">
+        <div class="eyebrow" data-i18n="eyebrow"></div>
+        <button id="language" class="ghost"></button>
       </div>
-      <p class="fineprint">Local detector runs fully in this browser. IP/country from network cannot be checked by static frontend unless you call a third-party endpoint.</p>
+      <h1 data-i18n="heroTitle"></h1>
+      <p class="lede" data-i18n="lede"></p>
+      <div class="actions">
+        <button id="rerun" class="primary"></button>
+        <button id="network" class="secondary"></button>
+      </div>
+      <p class="fineprint" data-i18n="fineprint"></p>
     </section>
 
-    <section id="summary" class="panel loading">Running detector…</section>
+    <section id="summary" class="panel loading"></section>
     <section id="contradictions" class="panel"></section>
     <section class="grid">
       <div id="scores" class="panel"></div>
@@ -30,6 +37,7 @@ app.innerHTML = `
 
 const rerunBtn = document.querySelector<HTMLButtonElement>("#rerun")!;
 const networkBtn = document.querySelector<HTMLButtonElement>("#network")!;
+const languageBtn = document.querySelector<HTMLButtonElement>("#language")!;
 const summaryEl = document.querySelector<HTMLElement>("#summary")!;
 const contradictionsEl = document.querySelector<HTMLElement>("#contradictions")!;
 const scoresEl = document.querySelector<HTMLElement>("#scores")!;
@@ -39,10 +47,19 @@ const rawEl = document.querySelector<HTMLElement>("#raw")!;
 
 let currentReport: DetectionReport | null = null;
 
+renderShellText();
+
+languageBtn.addEventListener("click", () => {
+  locale = otherLocale(locale);
+  setDocumentLocale(locale);
+  renderShellText();
+  if (currentReport) render(currentReport);
+});
+
 rerunBtn.addEventListener("click", () => runAndRender());
 networkBtn.addEventListener("click", async () => {
   networkBtn.disabled = true;
-  networkBtn.textContent = "Probing…";
+  networkBtn.textContent = t(locale, "probing");
   const results = await runNetworkProbe();
   if (currentReport) {
     currentReport.optionalNetwork = results;
@@ -51,14 +68,24 @@ networkBtn.addEventListener("click", async () => {
     renderNetworkOnly(results);
   }
   networkBtn.disabled = false;
-  networkBtn.textContent = "Optional IP probe";
+  networkBtn.textContent = t(locale, "network");
 });
 
 await runAndRender();
 
+function renderShellText() {
+  document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((node) => {
+    const key = node.dataset.i18n;
+    if (key) node.textContent = t(locale, key);
+  });
+  rerunBtn.textContent = t(locale, "rerun");
+  networkBtn.textContent = networkBtn.disabled ? t(locale, "probing") : t(locale, "network");
+  languageBtn.textContent = t(locale, "langSwitch");
+}
+
 async function runAndRender() {
   summaryEl.className = "panel loading";
-  summaryEl.textContent = "Running detector…";
+  summaryEl.textContent = t(locale, "running");
   currentReport = await runLocalDetector();
   render(currentReport);
 }
@@ -68,32 +95,32 @@ function render(report: DetectionReport) {
   summaryEl.className = "panel summary";
   summaryEl.innerHTML = `
     <div>
-      <div class="label">Primary guess</div>
-      <div class="guess">${top ? escapeHtml(countryLabel(top[0])) : "No strong country guess"}</div>
-      <div class="subtle">Generated ${escapeHtml(new Date(report.generatedAt).toLocaleString())}</div>
+      <div class="label">${escapeHtml(t(locale, "primaryGuess"))}</div>
+      <div class="guess">${top ? escapeHtml(countryLabel(top[0])) : escapeHtml(t(locale, "noStrongGuess"))}</div>
+      <div class="subtle">${escapeHtml(t(locale, "generated", { time: new Date(report.generatedAt).toLocaleString(locale === "zh" ? "zh-CN" : "en") }))}</div>
     </div>
-    <div class="pill ${report.contradictions.length ? "warn" : "ok"}">${report.signals.length} signals · ${report.contradictions.length} contradictions</div>
+    <div class="pill ${report.contradictions.length ? "warn" : "ok"}">${escapeHtml(t(locale, "signalSummary", { signals: report.signals.length, contradictions: report.contradictions.length }))}</div>
   `;
 
   contradictionsEl.innerHTML = `
-    <h2>Contradictions</h2>
-    ${report.contradictions.length ? `<ul>${report.contradictions.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>` : `<p class="subtle">No obvious cross-signal contradiction detected.</p>`}
-    ${report.optionalNetwork ? networkBlock(report.optionalNetwork) : `<p class="subtle">Network/IP probe is disabled until clicked.</p>`}
+    <h2>${escapeHtml(t(locale, "contradictions"))}</h2>
+    ${report.contradictions.length ? `<ul>${report.contradictions.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>` : `<p class="subtle">${escapeHtml(t(locale, "noContradictions"))}</p>`}
+    ${report.optionalNetwork ? networkBlock(report.optionalNetwork) : `<p class="subtle">${escapeHtml(t(locale, "networkDisabled"))}</p>`}
   `;
 
   scoresEl.innerHTML = `
-    <h2>Country score</h2>
-    ${Object.entries(report.countryScores).length ? Object.entries(report.countryScores).map(([country, score]) => scoreRow(country, score, maxScore(report))).join("") : `<p class="subtle">No country-weighted signal matched.</p>`}
+    <h2>${escapeHtml(t(locale, "countryScore"))}</h2>
+    ${Object.entries(report.countryScores).length ? Object.entries(report.countryScores).map(([country, score]) => scoreRow(country, score, maxScore(report))).join("") : `<p class="subtle">${escapeHtml(t(locale, "noCountrySignalMatched"))}</p>`}
   `;
 
   hashesEl.innerHTML = `
-    <h2>Environment hashes</h2>
+    <h2>${escapeHtml(t(locale, "environmentHashes"))}</h2>
     ${Object.entries(report.hashes).map(([k, v]) => `<div class="kv"><span>${escapeHtml(k)}</span><code>${escapeHtml(v)}</code></div>`).join("")}
-    <p class="subtle">Hashes are consistency probes, not country proof.</p>
+    <p class="subtle">${escapeHtml(t(locale, "hashNote"))}</p>
   `;
 
   signalsEl.innerHTML = report.signals.map(signalCard).join("");
-  rawEl.innerHTML = `<h2>Raw report</h2><pre>${escapeHtml(JSON.stringify(report, null, 2))}</pre>`;
+  rawEl.innerHTML = `<h2>${escapeHtml(t(locale, "rawReport"))}</h2><pre>${escapeHtml(JSON.stringify(report, null, 2))}</pre>`;
 }
 
 function renderNetworkOnly(results: NetworkProbeResult[]) {
@@ -103,10 +130,10 @@ function renderNetworkOnly(results: NetworkProbeResult[]) {
 function networkBlock(results: NetworkProbeResult[]): string {
   return `
     <div class="network">
-      <h3>Optional network probes</h3>
+      <h3>${escapeHtml(t(locale, "networkProbes"))}</h3>
       ${results.map((result) => `
         <details class="probe" ${result.ok ? "open" : ""}>
-          <summary>${escapeHtml(result.provider)} · ${result.ok ? "ok" : result.skipped ? "skipped" : "failed"}</summary>
+          <summary>${escapeHtml(result.provider)} · ${escapeHtml(t(locale, result.ok ? "ok" : result.skipped ? "skipped" : "failed"))}</summary>
           <div class="subtle">${escapeHtml(result.endpoint)}</div>
           <pre>${escapeHtml(JSON.stringify(result.value ?? result.error, null, 2))}</pre>
         </details>
@@ -140,9 +167,9 @@ function signalCard(signal: Signal): string {
         <div class="pill ${signal.level}">${signal.score.toFixed(2)}</div>
       </header>
       <p>${escapeHtml(signal.notes ?? "")}</p>
-      <div class="countries">${signal.countries.length ? signal.countries.map((c) => `<span>${escapeHtml(countryLabel(c))}</span>`).join("") : `<span>no country signal</span>`}</div>
+      <div class="countries">${signal.countries.length ? signal.countries.map((c) => `<span>${escapeHtml(countryLabel(c))}</span>`).join("") : `<span>${escapeHtml(t(locale, "noCountrySignal"))}</span>`}</div>
       <details>
-        <summary>raw value</summary>
+        <summary>${escapeHtml(t(locale, "rawValue"))}</summary>
         <pre>${escapeHtml(JSON.stringify(signal.value, null, 2))}</pre>
       </details>
     </article>
