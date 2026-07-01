@@ -1,0 +1,19 @@
+{
+  "name": "mainlander",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser locale fingerprint detector lab: country/region signals, contradictions, and anti-detection research demo.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  }
+}
