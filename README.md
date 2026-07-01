@@ -46,6 +46,22 @@ pnpm dev
 pnpm build
 ```
 
+## Release / npm publishing
+
+This repo is prepared for npm Trusted Publishing from GitHub Actions, so normal releases do not need an npm token in GitHub Secrets.
+
+Maintainer setup required once on npmjs.com after the first package exists:
+
+1. Open `mainlander` package settings on npm.
+2. Add a Trusted Publisher:
+   - Provider: GitHub Actions
+   - Repository: `bkmashiro/mainlander`
+   - Workflow file: `publish-npm.yml`
+   - Environment: leave blank unless the workflow is later changed to use a GitHub environment.
+3. Trigger **Publish npm** from GitHub Actions, or push a version tag such as `v0.1.1`.
+
+Important: npm Trusted Publishing cannot reliably create the very first package version for an unpublished package. If `mainlander` does not exist on npm yet, publish `0.1.0` once with a temporary/revoked-after-use token, then configure Trusted Publishing for future versions.
+
 ## Current detector modules
 
 - Navigator language/platform/user-agent
