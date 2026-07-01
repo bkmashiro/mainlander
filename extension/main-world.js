@@ -1,4 +1,10 @@
 (() => {
+  if (window.__MAINLANDER_SHIELD_MAIN_WORLD_INSTALLED__) {
+    window.postMessage({ source: "mainlander-shield", type: "request-settings" }, "*");
+    return;
+  }
+  window.__MAINLANDER_SHIELD_MAIN_WORLD_INSTALLED__ = true;
+
   const PERSONAS = {
     gb: { locale: "en-GB", languages: ["en-GB", "en"], timeZone: "Europe/London", timezoneOffset: 0, platform: "MacIntel", webglVendor: "Intel Inc.", webglRenderer: "Intel Iris OpenGL Engine", maxTextureSize: 16384, seed: "mainlander-gb" },
     us: { locale: "en-US", languages: ["en-US", "en"], timeZone: "America/New_York", timezoneOffset: 240, platform: "Win32", webglVendor: "Google Inc. (Intel)", webglRenderer: "ANGLE (Intel, Intel UHD Graphics Direct3D11)", maxTextureSize: 16384, seed: "mainlander-us" },
@@ -205,8 +211,9 @@
 
   function patchWebGPU() {
     if (!("gpu" in navigator)) return;
+    const originalGpu = navigator.gpu;
     audit("navigator.gpu.present");
-    if (settings.blockWebGPU) defineGetter(Navigator.prototype, "gpu", () => enabled() ? undefined : navigator.gpu);
+    defineGetter(Navigator.prototype, "gpu", () => enabled() && settings.blockWebGPU ? undefined : originalGpu);
   }
 
   function seeded(seedText) {

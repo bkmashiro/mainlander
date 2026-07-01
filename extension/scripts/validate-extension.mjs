@@ -37,7 +37,7 @@ if (!(manifest.content_scripts ?? []).some((script) => script.world === "MAIN" &
 assertFile(manifest.action?.default_popup);
 assertFile(manifest.options_page);
 
-for (const permission of ["storage", "declarativeNetRequest"]) {
+for (const permission of ["storage", "declarativeNetRequest", "scripting"]) {
   if (!manifest.permissions?.includes(permission)) fail(`missing permission ${permission}`);
 }
 

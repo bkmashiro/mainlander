@@ -13,6 +13,11 @@ const FIELDS = Object.keys(DEFAULT_SETTINGS);
 
 load();
 document.querySelector("#save").addEventListener("click", save);
+for (const field of FIELDS) {
+  document.querySelector(`#${field}`)?.addEventListener("change", () => {
+    document.querySelector("#saved").textContent = "Unsaved change";
+  });
+}
 
 async function load() {
   const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
@@ -30,8 +35,12 @@ async function save() {
     const el = document.querySelector(`#${field}`);
     settings[field] = el.type === "checkbox" ? el.checked : el.value;
   }
-  await chrome.storage.sync.set(settings);
-  await chrome.runtime.sendMessage({ type: "MAINLANDER_APPLY_NETWORK_SHIELD", enabled: settings.networkShield });
-  document.querySelector("#saved").textContent = "Saved";
-  setTimeout(() => document.querySelector("#saved").textContent = "", 1600);
+  document.querySelector("#saved").textContent = "Applying…";
+  const result = await chrome.runtime.sendMessage({ type: "MAINLANDER_UPDATE_SETTINGS", settings });
+  if (!result.ok) {
+    document.querySelector("#saved").textContent = `Error: ${result.error}`;
+    return;
+  }
+  document.querySelector("#saved").textContent = "Saved and applied to open tabs";
+  setTimeout(() => document.querySelector("#saved").textContent = "", 1800);
 }

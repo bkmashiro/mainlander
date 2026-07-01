@@ -8,14 +8,21 @@
   <body class="popup">
     <h1>Mainlander Shield</h1>
     <p id="status">Loading…</p>
+    <label class="compact-field">Persona
+      <select id="personaId">
+        <option value="gb">United Kingdom / English</option>
+        <option value="us">United States / English</option>
+        <option value="cnLite">Mainland China lite / Simplified Chinese</option>
+      </select>
+    </label>
+    <p id="saved" aria-live="polite"></p>
     <dl>
-      <dt>Persona</dt><dd id="persona">—</dd>
       <dt>Audit events</dt><dd id="audit-count">—</dd>
       <dt>Network rules</dt><dd id="network-rules">—</dd>
     </dl>
     <h2>Recent calls</h2>
     <ul id="events"></ul>
-    <button id="options">Options</button>
+    <button id="options" class="secondary-button">Advanced options</button>
     <script src="popup.js"></script>
   </body>
 </html>

@@ -23,9 +23,9 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "sync" && changes.networkShield) {
-    applyNetworkShield(Boolean(changes.networkShield.newValue));
-  }
+  if (area !== "sync") return;
+  if (changes.networkShield) applyNetworkShield(Boolean(changes.networkShield.newValue));
+  if (Object.keys(changes).some((key) => key in DEFAULT_SETTINGS)) refreshOpenTabs();
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -41,6 +41,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message?.type === "MAINLANDER_GET_STATUS") {
     getStatus().then(sendResponse).catch((error) => sendResponse({ ok: false, error: String(error) }));
+    return true;
+  }
+
+  if (message?.type === "MAINLANDER_UPDATE_SETTINGS") {
+    updateSettings(message.settings).then(sendResponse).catch((error) => sendResponse({ ok: false, error: String(error) }));
     return true;
   }
 
@@ -65,6 +70,35 @@ async function recordAuditEvent(event) {
   const { auditEvents = [] } = await chrome.storage.local.get({ auditEvents: [] });
   auditEvents.unshift(event);
   await chrome.storage.local.set({ auditEvents: auditEvents.slice(0, 200) });
+}
+
+async function updateSettings(nextSettings = {}) {
+  const settings = normalizeSettings({ ...(await chrome.storage.sync.get(DEFAULT_SETTINGS)), ...nextSettings });
+  await chrome.storage.sync.set(settings);
+  await applyNetworkShield(settings.networkShield);
+  await refreshOpenTabs();
+  return { ok: true, settings };
+}
+
+async function refreshOpenTabs() {
+  const tabs = await chrome.tabs.query({});
+  await Promise.allSettled(tabs.map(async (tab) => {
+    if (!tab.id || !isInjectableUrl(tab.url)) return;
+    try {
+      await chrome.tabs.sendMessage(tab.id, { type: "MAINLANDER_REFRESH_SETTINGS" });
+    } catch {
+      await injectShield(tab.id);
+    }
+  }));
+}
+
+async function injectShield(tabId) {
+  await chrome.scripting.executeScript({ target: { tabId }, files: ["main-world.js"], world: "MAIN" });
+  await chrome.scripting.executeScript({ target: { tabId }, files: ["content-bridge.js"], world: "ISOLATED" });
+}
+
+function isInjectableUrl(url = "") {
+  return /^(https?|file):/i.test(url);
 }
 
 async function getStatus() {

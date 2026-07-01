@@ -40,6 +40,23 @@ app.innerHTML = `
       <button id="shield-run" class="secondary"></button>
       <div id="shield-output" class="shield-output hidden"></div>
     </section>
+    <section id="install-guide" class="panel install-guide">
+      <div class="install-guide-heading">
+        <div>
+          <h2 data-i18n="installTitle"></h2>
+          <p class="subtle" data-i18n="installNote"></p>
+        </div>
+        <a class="secondary link-button" href="https://github.com/bkmashiro/mainlander/releases/latest" target="_blank" rel="noreferrer" data-i18n="installDownload"></a>
+      </div>
+      <ol class="install-steps">
+        <li data-i18n="installStep1"></li>
+        <li data-i18n="installStep2"></li>
+        <li data-i18n="installStep3"></li>
+        <li data-i18n="installStep4"></li>
+        <li data-i18n="installStep5"></li>
+      </ol>
+      <p class="subtle" data-i18n="installTrouble"></p>
+    </section>
     <section class="panel open-source">
       <h2 data-i18n="openSourceTitle"></h2>
       <p class="subtle" data-i18n="openSourceNote"></p>
