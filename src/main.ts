@@ -242,6 +242,8 @@ async function runShieldDemo(): Promise<ShieldDemoResult[]> {
       languages: navigator.languages,
       platform: navigator.platform,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      numberLocale: Intl.NumberFormat().resolvedOptions().locale,
+      collatorLocale: Intl.Collator().resolvedOptions().locale,
       timezoneOffset: new Date().getTimezoneOffset(),
     },
     hint: t(locale, "shieldPersonaHint"),

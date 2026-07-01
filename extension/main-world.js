@@ -1,7 +1,7 @@
 (() => {
   const PERSONAS = {
     gb: { locale: "en-GB", languages: ["en-GB", "en"], timeZone: "Europe/London", timezoneOffset: 0, platform: "MacIntel", webglVendor: "Intel Inc.", webglRenderer: "Intel Iris OpenGL Engine", maxTextureSize: 16384, seed: "mainlander-gb" },
-    us: { locale: "en-US", languages: ["en-US", "en"], timeZone: "America/New_York", timezoneOffset: 300, platform: "Win32", webglVendor: "Google Inc. (Intel)", webglRenderer: "ANGLE (Intel, Intel UHD Graphics Direct3D11)", maxTextureSize: 16384, seed: "mainlander-us" },
+    us: { locale: "en-US", languages: ["en-US", "en"], timeZone: "America/New_York", timezoneOffset: 240, platform: "Win32", webglVendor: "Google Inc. (Intel)", webglRenderer: "ANGLE (Intel, Intel UHD Graphics Direct3D11)", maxTextureSize: 16384, seed: "mainlander-us" },
     cnLite: { locale: "zh-CN", languages: ["zh-CN", "zh", "en"], timeZone: "Asia/Shanghai", timezoneOffset: -480, platform: "Win32", webglVendor: "Google Inc. (Intel)", webglRenderer: "ANGLE (Intel, Intel UHD Graphics Direct3D11)", maxTextureSize: 16384, seed: "mainlander-cn-lite" }
   };
   const DEFAULT_SETTINGS = { enableShield: true, personaId: "gb", blockWebRTC: true, blockWebGPU: true, genericMediaDevices: true, conservativePermissions: true, farbleCanvas: true, farbleAudio: true };
@@ -36,20 +36,9 @@
     };
   }
 
-  const OriginalDateTimeFormat = Intl.DateTimeFormat;
-  Intl.DateTimeFormat = function patchedDateTimeFormat(locales, options = {}) {
-    audit("Intl.DateTimeFormat", { locales });
-    if (enabled()) return new OriginalDateTimeFormat(locales || persona().locale, { ...options, timeZone: options.timeZone || persona().timeZone });
-    return new OriginalDateTimeFormat(locales, options);
-  };
-  Intl.DateTimeFormat.prototype = OriginalDateTimeFormat.prototype;
-  Intl.DateTimeFormat.supportedLocalesOf = OriginalDateTimeFormat.supportedLocalesOf.bind(OriginalDateTimeFormat);
-
-  const originalResolvedOptions = OriginalDateTimeFormat.prototype.resolvedOptions;
-  OriginalDateTimeFormat.prototype.resolvedOptions = function patchedResolvedOptions() {
-    const value = originalResolvedOptions.call(this);
-    return enabled() ? { ...value, locale: value.locale || persona().locale, timeZone: persona().timeZone } : value;
-  };
+  patchIntlConstructor("DateTimeFormat", (locales, options = {}) => [locales || persona().locale, { ...options, timeZone: options.timeZone || persona().timeZone }], (value) => ({ ...value, locale: persona().locale, timeZone: persona().timeZone }));
+  patchIntlConstructor("NumberFormat", (locales, options = {}) => [locales || persona().locale, options], (value) => ({ ...value, locale: persona().locale }));
+  patchIntlConstructor("Collator", (locales, options = {}) => [locales || persona().locale, options], (value) => ({ ...value, locale: persona().locale }));
 
   const originalGetTimezoneOffset = Date.prototype.getTimezoneOffset;
   Date.prototype.getTimezoneOffset = function patchedTimezoneOffset() {
@@ -65,6 +54,28 @@
   patchPermissions();
   patchMediaDevices();
   patchWebGPU();
+
+  function patchIntlConstructor(name, argsForPersona, resolvedForPersona) {
+    const Original = Intl[name];
+    if (typeof Original !== "function") return;
+    const originalResolvedOptions = Original.prototype?.resolvedOptions;
+    const Patched = function patchedIntlConstructor(locales, options = {}) {
+      audit(`Intl.${name}`, { locales });
+      if (enabled()) return Reflect.construct(Original, argsForPersona(locales, options), new.target || Original);
+      return Reflect.construct(Original, [locales, options], new.target || Original);
+    };
+    Object.defineProperty(Patched, "name", { value: name, configurable: true });
+    Patched.prototype = Original.prototype;
+    Object.setPrototypeOf(Patched, Original);
+    if (Original.supportedLocalesOf) Patched.supportedLocalesOf = Original.supportedLocalesOf.bind(Original);
+    Intl[name] = Patched;
+    if (typeof originalResolvedOptions === "function") {
+      Original.prototype.resolvedOptions = function patchedResolvedOptions() {
+        const value = originalResolvedOptions.call(this);
+        return enabled() ? resolvedForPersona(value) : value;
+      };
+    }
+  }
 
   function patchWebGL(Ctor) {
     if (!Ctor?.prototype?.getParameter) return;
@@ -105,6 +116,33 @@
         return image;
       };
     }
+    if (ctxProto?.measureText) {
+      const originalMeasureText = ctxProto.measureText;
+      ctxProto.measureText = function patchedMeasureText(text) {
+        audit("canvas.measureText", { font: this.font });
+        if (enabled() && persona().locale !== "zh-CN" && isCjkFontProbe(this.font)) {
+          const previous = this.font;
+          try {
+            this.font = fallbackFont(previous);
+            return originalMeasureText.call(this, text);
+          } finally {
+            this.font = previous;
+          }
+        }
+        return originalMeasureText.call(this, text);
+      };
+    }
+  }
+
+  function isCjkFontProbe(fontValue) {
+    return /Microsoft YaHei|SimSun|SimHei|DengXian|FangSong|KaiTi|PingFang SC|Hiragino Sans GB|Heiti SC|Noto Sans CJK SC|Source Han Sans SC|WenQuanYi|HarmonyOS Sans|Alibaba PuHuiTi|方正|小标宋|仿宋_GB2312/i.test(fontValue);
+  }
+
+  function fallbackFont(fontValue) {
+    const sizeMatch = fontValue.match(/(?:^|\s)(\d+(?:\.\d+)?px(?:\/\d+(?:\.\d+)?px)?)/);
+    const size = sizeMatch?.[1] || "72px";
+    const base = /monospace/i.test(fontValue) ? "monospace" : /serif/i.test(fontValue) && !/sans-serif/i.test(fontValue) ? "serif" : "sans-serif";
+    return `${size} ${base}`;
   }
 
   function farbleCanvas(canvas) {

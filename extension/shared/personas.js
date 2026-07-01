@@ -18,7 +18,7 @@ export const PERSONAS = {
     locale: "en-US",
     languages: ["en-US", "en"],
     timeZone: "America/New_York",
-    timezoneOffset: 300,
+    timezoneOffset: 240,
     platform: "Win32",
     userAgentData: { platform: "Windows", mobile: false },
     webgl: { vendor: "Google Inc. (Intel)", renderer: "ANGLE (Intel, Intel UHD Graphics Direct3D11)", maxTextureSize: 16384 },
