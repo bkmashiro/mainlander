@@ -1,19 +1,57 @@
 {
   "name": "mainlander",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
-  "description": "Browser locale fingerprint detector lab: country/region signals, contradictions, and anti-detection research demo.",
+  "description": "Browser country/region fingerprint detector library and privacy-first demo.",
+  "license": "MIT",
+  "homepage": "https://mainlander-dpf.pages.dev/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bkmashiro/mainlander.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bkmashiro/mainlander/issues"
+  },
+  "keywords": [
+    "browser",
+    "fingerprint",
+    "geoip",
+    "locale",
+    "privacy",
+    "country-detection"
+  ],
+  "sideEffects": false,
+  "main": "./dist-lib/mainlander.umd.cjs",
+  "module": "./dist-lib/mainlander.js",
+  "types": "./dist-lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist-lib/index.d.ts",
+      "import": "./dist-lib/mainlander.js",
+      "require": "./dist-lib/mainlander.umd.cjs"
+    }
+  },
+  "files": [
+    "dist-lib",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc && vite build",
+    "build": "pnpm build:lib && pnpm build:app",
+    "build:app": "tsc --noEmit && vite build",
+    "build:lib": "rm -rf dist-lib && tsc -p tsconfig.lib.json && vite build --config vite.lib.config.ts",
     "preview": "vite preview --host 127.0.0.1",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "pnpm test && pnpm build:lib"
   },
   "dependencies": {},
   "devDependencies": {
     "@vitejs/plugin-basic-ssl": "latest",
     "typescript": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "vitest": "^4.1.9"
   }
 }

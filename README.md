@@ -11,6 +11,33 @@ Browser country/region fingerprint detector lab: a static-first demo for compari
 
 Source code: <https://github.com/bkmashiro/mainlander>
 
+## Library usage
+
+The detector is also packaged as a browser-oriented npm library.
+
+```bash
+npm install mainlander
+```
+
+```ts
+import {
+  countryLabel,
+  runLocalDetector,
+  runNetworkProbe,
+  summarizeNetworkGeo,
+} from "mainlander";
+
+const report = await runLocalDetector();
+console.log(report.primaryCountryGuess, report.countryScores);
+
+// Only call this after explicit user consent/click.
+const network = await runNetworkProbe();
+console.log(summarizeNetworkGeo(network));
+console.log(countryLabel("GB")); // GB · United Kingdom
+```
+
+`runLocalDetector()` touches browser fingerprinting surfaces only inside the current page. `runNetworkProbe()` performs third-party requests and should stay behind an explicit click/consent gate.
+
 ## Development
 
 ```bash

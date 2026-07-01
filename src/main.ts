@@ -1,5 +1,5 @@
 import "./styles.css";
-import { countryLabel, runLocalDetector, runNetworkProbe, type DetectionReport, type NetworkProbeResult, type Signal } from "./detector.ts";
+import { countryLabel, runLocalDetector, runNetworkProbe, summarizeNetworkGeo, type DetectionReport, type NetworkProbeResult, type Signal } from "./detector.ts";
 import { detectLocale, otherLocale, setDocumentLocale, t, type Locale } from "./i18n.ts";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -146,9 +146,20 @@ function renderNetworkOnly(results: NetworkProbeResult[]) {
 }
 
 function networkBlock(results: NetworkProbeResult[]): string {
+  const geo = summarizeNetworkGeo(results);
   return `
     <div class="network">
       <h3>${escapeHtml(t(locale, "networkProbes"))}</h3>
+      <div class="geo-summary">
+        <div class="label">${escapeHtml(t(locale, "geoConsensus"))}</div>
+        ${geo.countryVotes.length ? geo.countryVotes.map((vote) => `
+          <div class="score-row compact">
+            <div><strong>${escapeHtml(vote.label)}</strong><span>${escapeHtml(t(locale, "geoVotes", { votes: vote.votes }))}</span></div>
+            <p class="subtle">${escapeHtml(vote.providers.join(", "))}</p>
+          </div>
+        `).join("") : `<p class="subtle">${escapeHtml(t(locale, "noGeoConsensus"))}</p>`}
+        ${geo.publicIps.length ? `<p class="subtle">${escapeHtml(t(locale, "publicIps"))}: ${escapeHtml(geo.publicIps.join(", "))}</p>` : ""}
+      </div>
       ${results.map((result) => `
         <details class="probe" ${result.ok ? "open" : ""}>
           <summary>${escapeHtml(result.provider)} · ${escapeHtml(t(locale, result.ok ? "ok" : result.skipped ? "skipped" : "failed"))}</summary>

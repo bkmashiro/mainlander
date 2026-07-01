@@ -65,6 +65,9 @@ pre { white-space: pre-wrap; word-break: break-word; color: #d4d4d8; font-size: 
 details { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
 summary { cursor: pointer; color: #a1a1aa; font-size: 13px; }
 .network { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.08); }
+.geo-summary { margin: 14px 0 18px; padding: 14px; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.04); }
+.score-row.compact { margin-top: 10px; }
+.score-row.compact p { margin: 0; }
 .network.error h3 { color: #fca5a5; }
 .raw { max-height: 520px; overflow: auto; }
 

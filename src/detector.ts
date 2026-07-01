@@ -32,6 +32,22 @@ export interface NetworkProbeResult {
   skipped?: boolean;
 }
 
+export interface NetworkGeoCountryVote {
+  country: string;
+  label: string;
+  votes: number;
+  providers: string[];
+}
+
+export interface NetworkGeoSummary {
+  publicIps: string[];
+  countryVotes: NetworkGeoCountryVote[];
+  providerCount: number;
+  okCount: number;
+  failedCount: number;
+  topCountry: string | null;
+}
+
 type Candidate = {
   country: string;
   reason: string;
@@ -147,6 +163,46 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 export function countryLabel(code: string): string {
   return COUNTRY_NAMES[code] ? `${code} · ${COUNTRY_NAMES[code]}` : code;
+}
+
+export function summarizeNetworkGeo(results: NetworkProbeResult[]): NetworkGeoSummary {
+  const publicIps: string[] = [];
+  const countries = new Map<string, { country: string; providers: string[] }>();
+  let okCount = 0;
+
+  for (const result of results) {
+    if (!result.ok) continue;
+    okCount++;
+    const value = asRecord(result.value);
+    if (!value) continue;
+
+    const ip = firstString(value.ip, value.ipAddress, value.query);
+    if (ip && !publicIps.includes(ip)) publicIps.push(ip);
+
+    const country = normalizeCountryCode(firstString(value.country, value.countryCode, value.loc));
+    if (!country) continue;
+    const vote = countries.get(country) ?? { country, providers: [] };
+    vote.providers.push(result.provider);
+    countries.set(country, vote);
+  }
+
+  const countryVotes = [...countries.values()]
+    .map((vote) => ({
+      country: vote.country,
+      label: countryLabel(vote.country),
+      votes: vote.providers.length,
+      providers: vote.providers,
+    }))
+    .sort((a, b) => b.votes - a.votes || a.country.localeCompare(b.country));
+
+  return {
+    publicIps,
+    countryVotes,
+    providerCount: results.length,
+    okCount,
+    failedCount: results.length - okCount,
+    topCountry: countryVotes[0]?.country ?? null,
+  };
 }
 
 export async function runLocalDetector(): Promise<DetectionReport> {
@@ -557,6 +613,23 @@ function findContradictions(signals: Signal[], scores: Record<string, number>): 
     contradictions.push("Chinese fonts detected without a Chinese/Singapore locale/timezone score.");
   }
   return contradictions;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function normalizeCountryCode(value: string | null): string | null {
+  if (!value) return null;
+  const code = value.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : null;
 }
 
 function unique<T>(items: T[]): T[] {
