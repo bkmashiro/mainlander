@@ -44,6 +44,8 @@ console.log(countryLabel("GB")); // GB · United Kingdom
 
 This repo also contains an experimental defensive MV3 extension under [`extension/`](./extension/). It is a privacy/research companion that applies stable personas, audits high-risk API calls, and can locally block known IP/GeoIP probe endpoints. It cannot change TLS fingerprints or your real exit IP.
 
+The demo page has a **Shield demo** panel that actively calls the relevant APIs so you can compare a normal browser against the extension-loaded browser.
+
 ## Development
 
 ```bash

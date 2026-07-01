@@ -50,6 +50,8 @@ console.log(countryLabel("GB")); // GB · United Kingdom
 
 仓库还包含一个实验性的防御型 MV3 扩展：[`extension/`](./extension/)。它是 Mainlander detector 的隐私/研究 companion：使用稳定 persona、审计高风险 API 调用，并可在本地阻断已知 IP/GeoIP probe endpoint。它不能改变 TLS 指纹，也不能改变真实出口 IP。
 
+网页里已经有 **Shield 插件演示** 面板，会主动调用相关 API，方便对比“普通浏览器”和“加载插件后的浏览器”差异。
+
 ## 当前已经实现的检测模块
 
 - Navigator language / platform / user-agent

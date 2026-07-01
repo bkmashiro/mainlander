@@ -46,7 +46,7 @@ From the repo root:
 pnpm validate:extension
 ```
 
-Then load the extension unpacked and visit the Mainlander demo to compare signals.
+Then load the extension unpacked and visit the Mainlander demo. Use the page's **Shield demo** panel to trigger persona, canvas, WebGPU, WebRTC, permissions, and media-device probes.
 
 ## Design principle
 
