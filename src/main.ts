@@ -17,14 +17,26 @@ app.innerHTML = `
       </div>
       <h1 data-i18n="heroTitle"></h1>
       <p class="lede" data-i18n="lede"></p>
-      <div class="actions">
-        <button id="rerun" class="primary"></button>
-        <button id="network" class="secondary"></button>
-      </div>
       <p class="fineprint" data-i18n="fineprint"></p>
     </section>
 
     <section id="summary" class="panel loading"></section>
+    <section id="controls" class="panel controls">
+      <div>
+        <h2 data-i18n="controlTitle"></h2>
+        <p class="subtle" data-i18n="controlNote"></p>
+      </div>
+      <div class="actions">
+        <button id="rerun" class="primary"></button>
+        <button id="network" class="secondary"></button>
+      </div>
+      <div id="network-output" class="network-output hidden"></div>
+    </section>
+    <section class="panel open-source">
+      <h2 data-i18n="openSourceTitle"></h2>
+      <p class="subtle" data-i18n="openSourceNote"></p>
+      <a href="https://github.com/bkmashiro/mainlander" target="_blank" rel="noreferrer">github.com/bkmashiro/mainlander</a>
+    </section>
     <section id="contradictions" class="panel"></section>
     <section class="grid">
       <div id="scores" class="panel"></div>
@@ -44,6 +56,7 @@ const scoresEl = document.querySelector<HTMLElement>("#scores")!;
 const hashesEl = document.querySelector<HTMLElement>("#hashes")!;
 const signalsEl = document.querySelector<HTMLElement>("#signals")!;
 const rawEl = document.querySelector<HTMLElement>("#raw")!;
+const networkOutputEl = document.querySelector<HTMLElement>("#network-output")!;
 
 let currentReport: DetectionReport | null = null;
 
@@ -67,6 +80,7 @@ networkBtn.addEventListener("click", async () => {
   } else {
     renderNetworkOnly(results);
   }
+  networkOutputEl.classList.remove("hidden");
   networkBtn.disabled = false;
   networkBtn.textContent = t(locale, "network");
 });
@@ -105,8 +119,11 @@ function render(report: DetectionReport) {
   contradictionsEl.innerHTML = `
     <h2>${escapeHtml(t(locale, "contradictions"))}</h2>
     ${report.contradictions.length ? `<ul>${report.contradictions.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>` : `<p class="subtle">${escapeHtml(t(locale, "noContradictions"))}</p>`}
-    ${report.optionalNetwork ? networkBlock(report.optionalNetwork) : `<p class="subtle">${escapeHtml(t(locale, "networkDisabled"))}</p>`}
   `;
+  if (report.optionalNetwork) {
+    networkOutputEl.innerHTML = networkBlock(report.optionalNetwork);
+    networkOutputEl.classList.remove("hidden");
+  }
 
   scoresEl.innerHTML = `
     <h2>${escapeHtml(t(locale, "countryScore"))}</h2>
@@ -124,7 +141,8 @@ function render(report: DetectionReport) {
 }
 
 function renderNetworkOnly(results: NetworkProbeResult[]) {
-  contradictionsEl.innerHTML = networkBlock(results);
+  networkOutputEl.innerHTML = networkBlock(results);
+  networkOutputEl.classList.remove("hidden");
 }
 
 function networkBlock(results: NetworkProbeResult[]): string {

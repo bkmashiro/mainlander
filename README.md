@@ -6,7 +6,10 @@ Browser country/region fingerprint detector lab: a static-first demo for compari
 
 - **Static/local detector:** runs fully in the browser and does not require a backend.
 - **Optional network probe:** can call public endpoints to reveal what a third-party service sees, including IP-derived country. This is strictly user-initiated: no IP/geolocation endpoint is contacted until the user clicks the probe button.
+- **No uploads:** local detector results are rendered in the browser and are not uploaded anywhere by this app.
 - **Research/demo only:** signals are heuristic and should not be used as sole proof of nationality, residence, or eligibility.
+
+Source code: <https://github.com/bkmashiro/mainlander>
 
 ## Development
 
