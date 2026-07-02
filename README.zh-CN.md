@@ -345,6 +345,7 @@ pnpm build
 
 ## 参考
 
+- 灵感来自 [`yArna/isChinaUser`](https://github.com/yArna/isChinaUser)。
 - MDN：NavigatorUAData / Client Hints
 - MDN：WebGPU `requestAdapter()`
 - MDN：WebAssembly

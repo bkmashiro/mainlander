@@ -69,3 +69,7 @@ pnpm build
 - Storage quota
 - WebRTC candidate probe
 - Optional IP API probe
+
+## References
+
+- Inspired by [`yArna/isChinaUser`](https://github.com/yArna/isChinaUser).
